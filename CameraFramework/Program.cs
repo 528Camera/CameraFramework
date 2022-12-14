@@ -4,6 +4,7 @@ using Google.Protobuf;
 using Emgu.CV;
 using System.Net.Sockets;
 using System.Net;
+using NetMQ;
 
 namespace CameraFramework
 {
@@ -13,12 +14,13 @@ namespace CameraFramework
         {
             var port = 5557;
             string localIp = GetLocalIPAddress();
-            using (var sender_img = new PushSocket("tcp://" + localIp + ":" + port.ToString()))//создаем push сокет
+            using (var sender_img = new PushSocket("@tcp://*:" + port.ToString()))//создаем push сокет
             {
+                //sender_img.Bind("@tcp://*:" + port.ToString());
                 Console.WriteLine("Programm started");
                 Console.WriteLine("Local Ip:" + localIp);
                 Console.WriteLine("Port:" + port.ToString());
-                GetImgTest(false);
+                GetImgTest(sender_img, true);
             }
         }
 
@@ -34,7 +36,7 @@ namespace CameraFramework
             return localIP;
         }
 
-        public static FrameData GetImgTest(bool multy) //тест дома на ноуте
+        public static FrameData GetImgTest(PushSocket push, bool multy) //тест дома на ноуте
         {
             var count = 0;
             bool one = true;
@@ -43,6 +45,7 @@ namespace CameraFramework
             {
                 while (one)
                 {
+                    Console.WriteLine("Sending tasks to workers");
                     var captured_img = capture.QueryFrame();
                     var img = captured_img.ToImage<Emgu.CV.Structure.Bgr, byte>();
                     var imgData = img.ToJpegData();
@@ -53,7 +56,11 @@ namespace CameraFramework
                     }
                     frame.Time = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow);
                     frame.FrameIndex = count;
+
+                    byte[] bytes = frame.ToByteArray();
+                    push.SendFrame(bytes);
                     one = multy;
+                    count++;
                 }
             }
             return frame;
