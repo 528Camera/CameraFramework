@@ -66,7 +66,7 @@ namespace CameraFramework
             return frame;
         }
 
-        public static void GetImg()//фунция для камеры в 528 
+        public static void GetImg(PushSocket push)//фунция для камеры в 528 
         {
             var count = 0;
             using (Emgu.CV.VideoCapture capture = new Emgu.CV.VideoCapture("http://guest:guest@192.168.9.37/video1.mjpg")) //подключаемся к видеокамере
@@ -84,6 +84,10 @@ namespace CameraFramework
                     }
                     frame.Time = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.Now); 
                     frame.FrameIndex = count;
+
+                    byte[] bytes = frame.ToByteArray();
+                    push.SendFrame(bytes);
+
                     count++;
                 }
             }
